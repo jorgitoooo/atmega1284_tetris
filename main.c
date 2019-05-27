@@ -1,60 +1,22 @@
 #include <avr/io.h>
-//#include <stdlib.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "timer.h"
 #include "io.c"
 #include "MAX7219.c"
 
-#define LED_MATRIX_PORT PORTB
+void Load_Word()
+{
+	LOAD_1();
+	LOAD_0();
+}
 
-//ADDRESSES FOR MAX7219
-#define NO_OP      0x0000
-#define DIG_0      0x0100
-#define DIG_1      0x0200
-#define DIG_2      0x0300
-#define DIG_3      0x0400
-#define DIG_4      0x0500
-#define DIG_5      0x0600
-#define DIG_6      0x0700
-#define DIG_7      0x0800
-#define DECODE_MODE_REG_ADDR 0x0900
-#define INTENSITY_REG_ADDR   0x0A00
-#define SCAN_LIMIT_REG_ADDR  0x0B00
-#define SHUTDOWN_REG_ADDR    0x0C00
-#define DISPLAY_TST_REG_ADDR 0x0F00
+#include "consts.h"
+#include "blocks.c"
 
-//DECODE MODES
-#define NO_DECODE  0x00
-#define ALL_DIGITS 0xFF
-//INTENSITIES
-#define INTENSITY_LOW  0x00
-#define INTENSITY_MID  0x07
-#define INTENSITY_HIGH 0x0F
-
-//SCAN LIMITS
-#define SCAN_LOW_NIB 0x03
-#define SCAN_BYTE    0x07
-
-//SHUTDOWN MODES
-#define SHUTDOWN_MODE        0x00
-#define SHUTDOWN_NORMAL_MODE 0x01
-
-//DISPLAY TEST MODES
-#define DISP_NORMAL_MODE 0x00
-#define DISP_TEST_MODE   0x01
-
-#define MAX_CLK ((~PINA >> 3) & 0X01)
-#define MAX_CLK_HIGH 0x01
-#define MAX_CLK_LOW  0x00
-#define MAX_CLK_BIT 3
-
-#define LOAD  0x02
-#define CLEAR 0x00
-
-#define BOTTOM_MATRIX 3
-
-typedef unsigned char  uc;
-typedef signed char    sc;
+typedef unsigned  char uc;
+typedef   signed  char sc;
 typedef unsigned short us;
 
 /*
@@ -152,151 +114,6 @@ void Init_LED_Matrices(uc num_of_matrices)
 	}
 }
 
-void Load_Word()
-{
-	LOAD_1();
-	LOAD_0();
-}
-
-void Draw_O_Block(char matrix, uc left, uc right, sc from_bottom)
-{
-	uc blk;
-	if (matrix != BOTTOM_MATRIX && from_bottom == -1)
-	{
-		blk = 0x01; // Half of the block is on the lower matrix
-	}
-	else if (from_bottom == 7)
-	{ 
-		blk = 0x01 << from_bottom; // Half of the block is on the upper matrix
-	}
-	else
-	{
-		blk = 0x03 << from_bottom; // Regular block
-	}
-	
-	for (char j = right; j <= left; j++)
-	{
-		for(char k = 0; k < 4; k++)
-		{
-			if (k == matrix)
-			{	
-				MAX7219_SendByte(j);
-				MAX7219_SendByte(blk);
-			}
-			else
-			{
-				MAX7219_SendByte(0);
-				MAX7219_SendByte(0x00);
-			}
-		}
-		Load_Word();
-	}
-}
-
-enum Block_Orientation { Vertical_Up, Horizontal_Up, Vertical_Down, Horizontal_Down} Block_Orientation;
-
-uc Assign_L_Block(uc orientation, uc h_pos)
-{
-	uc L = 0x00;
-	switch(orientation)
-	{
-		case Vertical_Up:
-			L = h_pos == 0 ? 0x01 : 0x07;
-			break;
-		case Horizontal_Up:
-			L = h_pos == 0 ? 0x03 : 0x01;
-			break;
-		case Vertical_Down:
-			L = h_pos == 0 ? 0x07 : 0x04;
-			break;
-		case Horizontal_Down:
-			L = h_pos == 2 ? 0x03 : 0x02;
-			break;
-		default: break;
-	}
-	return L;
-}
-
-void Draw_L_Block(char matrix, uc left, uc right, sc from_bottom, uc orientation)
-{
-	for(char pos = right; pos <= left; pos++)
-	{
-		for(char k = 0; k < 4; k++)
-		{
-			if (k == matrix)
-			{
-				uc l_blk = Assign_L_Block(orientation, pos - right);
-				l_blk = from_bottom < 0 ? l_blk >> abs(from_bottom) : l_blk << from_bottom;
-				
-				MAX7219_SendByte(pos);
-				MAX7219_SendByte(l_blk);
-			}
-			else
-			{
-				MAX7219_SendByte(0);
-				MAX7219_SendByte(0x00);
-			}
-		}
-		Load_Word();
-	}
-}
-
-uc Assign_I_Block(uc orientation)
-{
-	uc bar = 0x00;
-	switch(orientation)
-	{
-		case Vertical_Up:
-		case Vertical_Down:
-			bar = 0x0F;
-			break;
-		case Horizontal_Down:
-		case Horizontal_Up:
-			bar = 0x01;
-			break;
-		default: break;
-	}
-	return bar;
-}
-
-void Draw_I_Block(char matrix, uc left, uc right, sc from_bottom, uc orientation)
-{
-/*
-	uc elle;
-	if (matrix != BOTTOM_MATRIX)
-	{
-		if(from_bottom == -1)
-		{
-			
-		}
-	}
-	else if (from_bottom == 7)
-	{
-		elle = 0x01 << from_bottom; // Half of the block is on the upper matrix
-	}
-	else
-	{
-		elle = 0x03 << from_bottom; // Regular block
-	}
-*/
-	for(char pos = right; pos <= left; pos++)
-	{
-		for(char k = 0; k < 4; k++)
-		{
-			if (k == matrix)
-			{
-				MAX7219_SendByte(pos);
-				MAX7219_SendByte( Assign_I_Block(orientation) << from_bottom );
-			}
-			else
-			{
-				MAX7219_SendByte(0);
-				MAX7219_SendByte(0x00);
-			}
-		}
-		Load_Word();
-	}
-}
 
 void Show_Orientations(const char *str)
 {
@@ -351,7 +168,7 @@ int main(void)
 	
 	DDRB = 0xFF; PORTB = 0x00;
 
-	TimerSet(250);
+	TimerSet(450);
 	TimerOn();
 
 	Init_LED_Matrices(4);
@@ -364,6 +181,8 @@ int main(void)
 	
 	uc right = 1, left = 2;
 	
+	enum Block_Orientation orientation = Vertical_Up;
+	
 	while (1) 
     {
 
@@ -372,63 +191,69 @@ int main(void)
 		if (!is_done)
 		{
 			PORTB |= 0x40;
-			
+		
 			if (~PINA & 0x08 && left < 8) // Shifts entire block to the left
 			{
+				// When horizontal, there should be an extra space left for the left/right most light
+
 				++left;
-				++right;
+				++right;	
 			}
 			else if (~PINA & 0x08 && left == 8) // resets block on the rhs
 			{
-				left = 2;
+				if (orientation == Horizontal_Down || orientation == Horizontal_Up)
+					left = 3;
+				else
+					left = 2;
 				right = 1;
+			}
+
+		
+			if (~PINA & 0x04)
+			{
+				orientation = (orientation + 1) % 4;
+				
+				if ((orientation == Horizontal_Down || orientation == Horizontal_Up) && (left - right) == 1)
+				{
+					// Maintains left in bound
+					if (left > 7)
+						--right;
+					else
+						++left;
+				}
+				else if ((left - right) == 2)
+					--left;
+				
+			//	left = left > 8 ? 8 : left; // Keeps blocks in bound when horizontal
 			}
 		
 			Clear_All();
-/*
-			if (j < 0 && cur_matrix < BOTTOM_MATRIX) // L-BLOCK
-			{
-//				Draw_L_Block(cur_matrix,     left, right,     j, Vertical_Up);
-//				Draw_L_Block(cur_matrix + 1, left, right, 8 + j, Vertical_Up);
-			}
 
-			--j;
-*/
 			// j < 0 if part of the block is on the lower matrix
 			if (j < 0 && cur_matrix < BOTTOM_MATRIX) // O-BLOCK
 			{
-				Draw_O_Block(cur_matrix    , left, right, j);
-				Draw_O_Block(cur_matrix + 1, left, right, 8 + j);
-//				Draw_L_Block(cur_matrix,     left, right,     j, Vertical_Up);
-//				Draw_L_Block(cur_matrix + 1, left, right, 8 + j, Vertical_Up);
+//				Draw_O_Block(cur_matrix    , left, right, j);
+//				Draw_O_Block(cur_matrix + 1, left, right, 8 + j);
+				Draw_L_Block(cur_matrix,     left, right,     j, orientation);
+				Draw_L_Block(cur_matrix + 1, left, right, 8 + j, orientation);
 			}
-			else Draw_O_Block(cur_matrix, left, right, j);
-//			else Draw_L_Block(cur_matrix, left, right, j, Vertical_Up);
+//			else Draw_O_Block(cur_matrix, left, right, j);
+			else Draw_L_Block(cur_matrix, left, right, j, orientation);
 			--j;
 						
 			while(!TimerFlag);
 			TimerFlag = 0;
 
 	
-			if(j < -1 && cur_matrix < 3) // O-BLOCK
-//			if(j < -2 && cur_matrix < 3) // L-BLOCK
+//			if(j < -1 && cur_matrix < 3) // O-BLOCK
+			if(j < -2 && cur_matrix < 3) // L-BLOCK
 			{
-				j = 6; // O-BLOCK
-//				j = 5; // L-BLOCK
+//				j = 6; // O-BLOCK
+				j = 5; // L-BLOCK
 				++cur_matrix;
 			}
 			else if (j < 0 && cur_matrix >= 3) is_done = 0x01;
 		}
-
-		/*
-		if (~PINA & 0x04) 
-		{
-			is_done = 0x00;
-			cur_matrix = 0;
-			j = 7;
-		}
-		*/
-
     }
 }
 
