@@ -109,7 +109,7 @@ void MakeWall()
 // *** WILL RETURN IF BLOCK REACHES THE BOTTOM OR MAKES CONTACT WITH A RESTING BLOCK ***
 void Drop_A_Block(uc (*fct) (uc, uc, uc, sc, uc, uc), uc *cur_matrix, uc *is_done, uc *left, uc *right, uc *orientation, sc *from_bottom)
 {
-	static uc contact = 0;
+	uc contact = 0;
 	//uc contact = 0; // Is one if block makes contact with resting block
 	//static uc pos_array[4][8]; // Maintains value of dropped blocks
 	
@@ -216,6 +216,7 @@ int main(void)
 	uc right2 = 4, left2 = 5;
 	
 	enum Block_Orientation orientation = Vertical_Up;
+	enum Block_Orientation orientation2 = Vertical_Up;
 	
 	uc (*fct) (uc, uc, uc, sc, uc, uc);
 	
@@ -232,7 +233,7 @@ int main(void)
 		{
 			Clear_All();
 			DrawBlockMatrix();
-			Drop_A_Block(fct, &cur_matrix2, &is_done2, &left2, &right2, &orientation, &from_bottom2);
+			Drop_A_Block(fct, &cur_matrix2, &is_done2, &left2, &right2, &orientation2, &from_bottom2);
 		}
 //		PORTB |= 0b01101111 & ( 0x01 << 3);
 		while(!TimerFlag);

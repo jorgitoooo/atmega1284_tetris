@@ -14,18 +14,14 @@ uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
 	// Matrix + 1 > 3 means that we're on the lowest matrix
 	if (poc <= 0 && matrix + 1 <= 3)
 	{
-		if ((POS_ARRAY[matrix + 1][pos] & (block << (7 + block))) > 0)
-		{
-			PORTB |= 0xF0;
-		}
-		return 0;
+		return ((POS_ARRAY[matrix + 1][pos] & (block << (7 + poc))) > 0);
 	}
 
 	uc par_pos = (POS_ARRAY[matrix][pos] & (0x01 << (poc - 1))) >> (poc - 1);
 	uc blk_pos = (block & (0x01 << poc)) >> poc;
 
-
-	return (par_pos == blk_pos && par_pos != 0);
+	// Returns 1 if block collides w/ another block or reaches the bottom
+	return (par_pos == blk_pos && par_pos != 0) || (poc == 0 && matrix == 3);
 
 //	return POS_ARRAY[matrix][pos] & (block >> 1) > 0;
 }
@@ -92,7 +88,7 @@ uc Assign_L_Block(uc orientation, uc h_pos)
 //uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
 {
-	uc block_contact = 0;
+	uc block_contact = made_contact;
 	
 	uc block_length = left - right + 1; // Lowest (left - right) value is 0 which is why we add 1
 	uc block_maintainer[block_length]; // Will maintain the visual representation of the block
