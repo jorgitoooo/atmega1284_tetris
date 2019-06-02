@@ -21,22 +21,10 @@ uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
 		return 0;
 	}
 
-	uc par_pos = POS_ARRAY[matrix][pos] & 0x01;
-	uc blk_pos = block & 0x02;
-
-	blk_pos = blk_pos >> 1;
-
-	PORTB &= 0x07;
-	PORTB  = PORTB | (par_pos << 7) | (blk_pos << 6);
+	uc par_pos = (POS_ARRAY[matrix][pos] & (0x01 << (poc - 1))) >> (poc - 1);
+	uc blk_pos = (block & (0x01 << poc)) >> poc;
 	
-	if (par_pos == blk_pos && par_pos != 0)
-	{
-//		PORTB &= 0x07;
-//		PORTB |= 0xF0 << 4;
-//		Set_POS_ARRAY(matrix, pos, block);
-		return 1;
-	}
-	return 0;
+	return (par_pos == blk_pos && par_pos != 0);
 }
 
 void Set_POS_ARRAY(uc matrix, uc pos, uc block)
@@ -103,9 +91,14 @@ uc Assign_L_Block(uc orientation, uc h_pos)
 	return L;
 }
 
-void Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
+uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 {
-//	for(char pos = right; pos <= left; pos++)
+	uc block_contact = 0;
+	uc contact_matrix = 0;
+	
+	uc block_length = left - right + 1; // Lowest (left - right) value is 0 which is why we add 1
+	uc block_maintainer[block_length]; // Will maintain the visual representation of the block
+
 	for(char pos = 1; pos <= 8; pos++)
 	{
 		for(char curr_matrix = 0; curr_matrix < 4; curr_matrix++)
@@ -120,8 +113,11 @@ void Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 				{
 					if (Check_For_Contact(curr_matrix, pos - 1, from_bottom, l_blk) == 1)
 					{
-//						PORTB |= from_bottom < 0 ? 0xF0 : PORTB;
+						block_contact = 1;
+						contact_matrix = curr_matrix;
 					}
+					
+					block_maintainer[pos - right] = l_blk;
 					MAX7219_SendByte(pos);
 					MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1] | l_blk);
 				}
@@ -144,6 +140,16 @@ void Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 		}
 		Load_Word();
 	}
+	// Update block POS_ARRAY
+	if (block_contact == 1)
+	{
+		for (uc block_seg_pos = 0 ; block_seg_pos < block_length; block_seg_pos++)
+		{
+			POS_ARRAY[contact_matrix][right + block_seg_pos] |= block_maintainer[block_seg_pos];
+		}
+		return block_contact;
+	}
+	return block_contact;
 }
 
 uc Assign_I_Block(uc orientation)
