@@ -14,22 +14,20 @@ uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
 	// Matrix + 1 > 3 means that we're on the lowest matrix
 	if (poc <= 0 && matrix + 1 <= 3)
 	{
-		if (POS_ARRAY[matrix + 1][pos] & (0x01 << (7 + poc)))
+		if ((POS_ARRAY[matrix + 1][pos] & (block << (7 + block))) > 0)
 		{
-//			Set_POS_ARRAY(matrix + 1, pos, block);
+			PORTB |= 0xF0;
 		}
 		return 0;
 	}
 
 	uc par_pos = (POS_ARRAY[matrix][pos] & (0x01 << (poc - 1))) >> (poc - 1);
 	uc blk_pos = (block & (0x01 << poc)) >> poc;
-	
-	return (par_pos == blk_pos && par_pos != 0);
-}
 
-void Set_POS_ARRAY(uc matrix, uc pos, uc block)
-{
-	POS_ARRAY[matrix][pos] |= block;
+
+	return (par_pos == blk_pos && par_pos != 0);
+
+//	return POS_ARRAY[matrix][pos] & (block >> 1) > 0;
 }
 
 void Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
@@ -91,63 +89,70 @@ uc Assign_L_Block(uc orientation, uc h_pos)
 	return L;
 }
 
-uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
+//uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
+uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
 {
 	uc block_contact = 0;
-	uc contact_matrix = 0;
 	
 	uc block_length = left - right + 1; // Lowest (left - right) value is 0 which is why we add 1
 	uc block_maintainer[block_length]; // Will maintain the visual representation of the block
 
-	for(char pos = 1; pos <= 8; pos++)
+//	if (!made_contact)// If made_contact == 1 -> lower matrix segment of block made contact
 	{
-		for(char curr_matrix = 0; curr_matrix < 4; curr_matrix++)
+		for(char pos = 1; pos <= 8; pos++)
 		{
-			if (curr_matrix == matrix)
+			for(char curr_matrix = 0; curr_matrix < 4; curr_matrix++)
 			{
-				uc l_blk = Assign_L_Block(orientation, pos - right);
-
-				l_blk = from_bottom < 0 ? l_blk >> abs(from_bottom) : l_blk << from_bottom;
-			
-				if (pos >= right && pos <= left)
+				if (curr_matrix == matrix)
 				{
-					if (Check_For_Contact(curr_matrix, pos - 1, from_bottom, l_blk) == 1)
+					uc l_blk = Assign_L_Block(orientation, pos - right);
+
+					l_blk = from_bottom < 0 ? l_blk >> abs(from_bottom) : l_blk << from_bottom;
+				
+					// right <= pos <= left -> block segment column is selected
+					if (pos >= right && pos <= left)
 					{
-						block_contact = 1;
-						contact_matrix = curr_matrix;
+						if (Check_For_Contact(curr_matrix, pos - 1, from_bottom, l_blk) == 1)
+						{
+							block_contact = 1;
+						}
+						
+						block_maintainer[pos - right] = l_blk;
+
+						MAX7219_SendByte(pos);
+						MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1] | l_blk);
 					}
-					
-					block_maintainer[pos - right] = l_blk;
-					MAX7219_SendByte(pos);
-					MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1] | l_blk);
+					else
+					{
+						MAX7219_SendByte(pos);
+						MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1]);
+					}
 				}
 				else
 				{
-					MAX7219_SendByte(pos);
-					MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1]);
+					if (pos >= right && pos <= left && from_bottom < 0)
+					{
+						MAX7219_SendByte(0);
+						MAX7219_SendByte(0x00);
+					}
+					else
+					{
+						MAX7219_SendByte(pos);
+						MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1]);
+					}
 				}
-//				MAX7219_SendByte(pos);
-//				MAX7219_SendByte(l_blk);
-
 			}
-			else
-			{
-				MAX7219_SendByte(pos);
-				MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1]);
-//				MAX7219_SendByte(0);
-//				MAX7219_SendByte(0x00);
-			}
+			Load_Word();
 		}
-		Load_Word();
 	}
+
 	// Update block POS_ARRAY
-	if (block_contact == 1)
+	if (block_contact || made_contact)
 	{
 		for (uc block_seg_pos = 0 ; block_seg_pos < block_length; block_seg_pos++)
 		{
-			POS_ARRAY[contact_matrix][right + block_seg_pos] |= block_maintainer[block_seg_pos];
+			POS_ARRAY[matrix][right - 1 + block_seg_pos] |= block_maintainer[block_seg_pos];
 		}
-		return block_contact;
 	}
 	return block_contact;
 }

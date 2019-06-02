@@ -222,7 +222,6 @@ void MAX7219_SetBrightness (char brightness)
 */
 void MAX7219_Clear (void)
 {
-  LOAD_0();
   char i;
   for (i=1; i <= 8; i++)
       MAX7219_Write(i, 0x00);                           // turn all segments off

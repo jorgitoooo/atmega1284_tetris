@@ -78,16 +78,27 @@ void Set_Register(uc reg_data, uc matrix_num)
 	PORTB = 0x08;
 }
 
-//enum States {Start, Init, Pressed};
+void Send_Word(uc reg, uc data)
+{
+	MAX7219_SendByte(reg);
+	MAX7219_SendByte(data);
+}
 
 void Clear_All()
 {
-	for(char i = 0; i < 3; i++) MAX7219_Clear();
+	for (uc reg = 1; reg < 9; reg++)
+	{
+		for (uc matrix = 0; matrix < 4; matrix++)
+		{
+			Send_Word(reg, 0x00);
+		}
+		Load_Word();
+	}
 }
 
 void Set_Brightness(uc brightness, uc num_of_matrices)
 {
-	for (char i = 1; i < num_of_matrices; i++)
+	for (char i = 0; i < num_of_matrices; i++)
 	{
 		MAX7219_SetBrightness(brightness);
 	}
@@ -95,7 +106,7 @@ void Set_Brightness(uc brightness, uc num_of_matrices)
 
 void Init_LED_Matrices(uc num_of_matrices)
 {
-	for (char i = 1; i < num_of_matrices; i++)
+	for (char i = 0; i < num_of_matrices; i++)
 	{
 		MAX7219_Init();
 	}
@@ -106,10 +117,10 @@ void Show_Orientations(const char *str)
 {
 	if(strcmp(str, "l block") == 0)
 	{
-		Draw_L_Block(0, 5, 4, 2, Vertical_Up);
-		Draw_L_Block(1, 5, 4, 2, Vertical_Down);
-		Draw_L_Block(2, 5, 3, 3, Horizontal_Down);
-		Draw_L_Block(3, 5, 3, 3, Horizontal_Up);
+		Draw_L_Block(0, 5, 4, 2, Vertical_Up, 0);
+		Draw_L_Block(1, 5, 4, 2, Vertical_Down, 0);
+		Draw_L_Block(2, 5, 3, 3, Horizontal_Down, 0);
+		Draw_L_Block(3, 5, 3, 3, Horizontal_Up, 0);
 	}
 	else if(strcmp(str, "o block") == 0)
 	{
