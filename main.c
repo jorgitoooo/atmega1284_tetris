@@ -28,7 +28,7 @@ void MakeRandom()
 	POS_ARRAY[matrix][col++] = 0b00000000;
 	POS_ARRAY[matrix][col++] = 0b00000000;
 	matrix++; col = 0;
-	POS_ARRAY[matrix][col++] = 0b00111111;
+	POS_ARRAY[matrix][col++] = 0b01111111;
 	POS_ARRAY[matrix][col++] = 0b00011111;
 	POS_ARRAY[matrix][col++] = 0b00011111;
 	POS_ARRAY[matrix][col++] = 0b00001111;
@@ -44,31 +44,21 @@ void MakeRandom()
 	POS_ARRAY[matrix][col++] = 0b11111111;
 	POS_ARRAY[matrix][col++] = 0b11111111;
 	POS_ARRAY[matrix][col++] = 0b11111111;
-	POS_ARRAY[matrix][col++] = 0b11111111;
+	POS_ARRAY[matrix][col++] = 0b11111101;
 	matrix++; col = 0;
 	POS_ARRAY[matrix][col++] = 0b11111111;
 	POS_ARRAY[matrix][col++] = 0b11111111;
+	POS_ARRAY[matrix][col++] = 0b11111101;
 	POS_ARRAY[matrix][col++] = 0b11111111;
+	POS_ARRAY[matrix][col++] = 0b11011111;
 	POS_ARRAY[matrix][col++] = 0b11111111;
-	POS_ARRAY[matrix][col++] = 0b11111111;
-	POS_ARRAY[matrix][col++] = 0b11111111;
-	POS_ARRAY[matrix][col++] = 0b11111111;
+	POS_ARRAY[matrix][col++] = 0b11110111;
 	POS_ARRAY[matrix][col++] = 0b11111111;
 }
 
 void MakeWall()
 {
 	uc matrix = 0; uc col = 0;
-/*
-	POS_ARRAY[matrix][col++] = 0b00000001;
-	POS_ARRAY[matrix][col++] = 0b00000001;
-	POS_ARRAY[matrix][col++] = 0b00000001;
-	POS_ARRAY[matrix][col++] = 0b00000001;
-	POS_ARRAY[matrix][col++] = 0b00000001;
-	POS_ARRAY[matrix][col++] = 0b00000001;
-	POS_ARRAY[matrix][col++] = 0b00000001;
-	POS_ARRAY[matrix][col++] = 0b00000001;
-*/
 	POS_ARRAY[matrix][col++] = 0b00000000;
 	POS_ARRAY[matrix][col++] = 0b00000000;
 	POS_ARRAY[matrix][col++] = 0b00000000;
@@ -106,17 +96,12 @@ void MakeWall()
 	POS_ARRAY[matrix][col++] = 0b11111111;
 }
 
-// *** WILL RETURN IF BLOCK REACHES THE BOTTOM OR MAKES CONTACT WITH A RESTING BLOCK ***
 void Drop_A_Block(uc (*fct) (uc, uc, uc, sc, uc, uc), uc *cur_matrix, uc *is_done, uc *left, uc *right, uc *orientation, sc *from_bottom)
 {
 	uc contact = 0;
-	//uc contact = 0; // Is one if block makes contact with resting block
-	//static uc pos_array[4][8]; // Maintains value of dropped blocks
 	
 	if (!(*is_done))
-	{
-//		PORTB |= 0x40; // test light
-		
+	{	
 		// *** MAY ABSTRACT AWAY ***
 		if (~PINA & 0x08 && *left < 8) // Shift check
 		{
@@ -132,7 +117,6 @@ void Drop_A_Block(uc (*fct) (uc, uc, uc, sc, uc, uc), uc *cur_matrix, uc *is_don
 				*left = 2;
 			*right = 1;
 		}
-
 		// *** MAY ABSTRACT AWAY ***
 		if (~PINA & 0x04) // Orientation check
 		{
@@ -149,16 +133,13 @@ void Drop_A_Block(uc (*fct) (uc, uc, uc, sc, uc, uc), uc *cur_matrix, uc *is_don
 			else if ((*left - *right) == 2)
 			--(*left);
 		}
-		
 		Clear_All();
 		
 		// from_bottom < 0 if part of the block is on the lower matrix
 		if (*from_bottom < 0 && *cur_matrix < BOTTOM_MATRIX)
 		{
-			// *** MAY BE A SPECIAL CASE FOR CONTACT ***
-			contact = (*fct)(*cur_matrix + 1, *left, *right, 8 + *from_bottom, *orientation, 0); // Not placing this fct call first erases the upper matrix's part of block
-
-//			contact = (*fct)(*cur_matrix,     *left, *right,     *from_bottom, *orientation, contact);
+			// Not placing this fct call first erases the upper matrix's part of block
+			contact = (*fct)(*cur_matrix + 1, *left, *right, 8 + *from_bottom, *orientation, 0); 
 		}
 		contact = (*fct)(*cur_matrix, *left, *right, *from_bottom, *orientation, contact);
 		--(*from_bottom);
@@ -171,7 +152,6 @@ void Drop_A_Block(uc (*fct) (uc, uc, uc, sc, uc, uc), uc *cur_matrix, uc *is_don
 		else if (*from_bottom < 0 && *cur_matrix >= 3 || contact)
 		{
 			*is_done = 0x01;
-			// assign position of block to pos_array
 		}
 	}
 }
@@ -190,14 +170,28 @@ void DrawBlockMatrix()
 	}
 }
 
+void TestForSolids()
+{
+	uc re[9];
+	
+	for (uc matrix = 0; matrix < 4; matrix++)
+	{
+		Check_For_Solid_Row(matrix, re);
+		
+		while (!TimerFlag);
+		TimerFlag = 0;
+		
+		PORTB &= 0x0F;
+		PORTB |= (re[0] << 4);
+	}
+}
+
 int main(void)
 {
 	DDRA = 0x03; PORTA = 0xFC;
-//	DDRD = 0xFF; PORTD = 0x00;
-	
 	DDRB = 0xFF; PORTB = 0x00;
 
-	TimerSet(450);
+	TimerSet(1000);
 	TimerOn();
 
 	Init_LED_Matrices(4);
@@ -224,10 +218,19 @@ int main(void)
 
 	MakeRandom();
 	DrawBlockMatrix();
+	
+	TestForSolids();	
+	
+//	uc re[9];
+//	Check_For_Solid_Row(1, re);
+	
+//	PORTB = re[0];
+	
 	while (1) 
     {
+	
 //		Show_Orientations("l block");	
-		Drop_A_Block(fct, &cur_matrix, &is_done, &left, &right, &orientation, &from_bottom);
+//		Drop_A_Block(fct, &cur_matrix, &is_done, &left, &right, &orientation, &from_bottom);
 	
 		if(is_done)
 		{
@@ -235,7 +238,7 @@ int main(void)
 			DrawBlockMatrix();
 			Drop_A_Block(fct, &cur_matrix2, &is_done2, &left2, &right2, &orientation2, &from_bottom2);
 		}
-//		PORTB |= 0b01101111 & ( 0x01 << 3);
+
 		while(!TimerFlag);
 		TimerFlag = 0;
     }

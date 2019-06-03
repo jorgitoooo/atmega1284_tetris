@@ -21,7 +21,7 @@ void Shift_Bit_Into(us reg_data, uc indx)
 	// CLK goes high to shift the bit
 	LED_MATRIX_PORT |= 0x04; // 0000 0cxx
 }
-
+/*
 void Init_LED_Matrix(uc matrix_count)
 {
 	us us_disp_tst_reg = DISPLAY_TST_REG_ADDR | DISP_NORMAL_MODE;
@@ -46,7 +46,7 @@ void Init_LED_Matrix(uc matrix_count)
 		Shift_Bit_Into(us_disp_tst_reg, indx);
 	}
 }
-
+*/
 void Set_Register(uc reg_data, uc matrix_num)
 {
 	LED_MATRIX_PORT = CLEAR;

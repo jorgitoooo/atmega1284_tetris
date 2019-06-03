@@ -6,10 +6,18 @@ typedef   signed char  sc;
 typedef unsigned short us;
 
 // GLOBALS
+//*******************************
 uc POS_ARRAY[4][8];
+
+struct Row_Eliminator {
+	uc num_of_solid_rows;
+	uc rows[8]; // Max of 8 rows
+};
+//*******************************
 
 uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
 {
+	// ************** HORIZONTAL_DOWN LOWER MATRIX COLLISION BUG IS PROB. HERE **
 	// Neg. poc means part of the block is on the lower matrix
 	// Matrix + 1 > 3 means that we're on the lowest matrix
 	if (poc <= 0 && matrix + 1 <= 3)
@@ -17,13 +25,39 @@ uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
 		return ((POS_ARRAY[matrix + 1][pos] & (block << (7 + poc))) > 0);
 	}
 
-	uc par_pos = (POS_ARRAY[matrix][pos] & (0x01 << (poc - 1))) >> (poc - 1);
-	uc blk_pos = (block & (0x01 << poc)) >> poc;
+//	uc par_pos = (POS_ARRAY[matrix][pos] & (0x01 << (poc - 1))) >> (poc - 1);
+//	uc blk_pos = (block & (0x01 << poc)) >> poc;
 
 	// Returns 1 if block collides w/ another block or reaches the bottom
-	return (par_pos == blk_pos && par_pos != 0) || (poc == 0 && matrix == 3);
+//	return (par_pos == blk_pos && par_pos != 0) || (poc == 0 && matrix == 3);
 
-//	return POS_ARRAY[matrix][pos] & (block >> 1) > 0;
+	return ((POS_ARRAY[matrix][pos] & (block >> 1)) > 0) || (poc == 0 && matrix == 3);
+}
+
+void Check_For_Solid_Row(uc matrix, uc *re)
+{
+	re[0] = 0; // Reset Value in case previously set
+	
+	uc is_solid = 1;
+	uc index = 0;
+	
+	for (uc row = 0; row < 8; row++)
+	{
+		for (uc col = 0; col < 8; col++)
+		{
+			if ((POS_ARRAY[matrix][col] & (0x01 << row)) == 0)
+			{
+				col = 9;
+				is_solid = 0;
+			}
+		}
+		if (is_solid)
+		{
+			re[0]++;
+			re[++index] = row;
+		}
+		is_solid = 1;
+	}
 }
 
 void Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
@@ -93,7 +127,7 @@ uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc
 	uc block_length = left - right + 1; // Lowest (left - right) value is 0 which is why we add 1
 	uc block_maintainer[block_length]; // Will maintain the visual representation of the block
 
-//	if (!made_contact)// If made_contact == 1 -> lower matrix segment of block made contact
+//	if (!block_contact)// If made_contact == 1 -> lower matrix segment of block made contact
 	{
 		for(char pos = 1; pos <= 8; pos++)
 		{
@@ -114,27 +148,24 @@ uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc
 						}
 						
 						block_maintainer[pos - right] = l_blk;
-
-						MAX7219_SendByte(pos);
-						MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1] | l_blk);
+						
+						Send_Word(pos, POS_ARRAY[curr_matrix][pos-1] | l_blk);
 					}
 					else
 					{
-						MAX7219_SendByte(pos);
-						MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1]);
+						Send_Word(pos, POS_ARRAY[curr_matrix][pos-1]);
 					}
 				}
 				else
 				{
 					if (pos >= right && pos <= left && from_bottom < 0)
 					{
-						MAX7219_SendByte(0);
-						MAX7219_SendByte(0x00);
+						Send_Word(0, 0x00);
 					}
 					else
 					{
-						MAX7219_SendByte(pos);
-						MAX7219_SendByte(POS_ARRAY[curr_matrix][pos-1]);
+
+						Send_Word(pos, POS_ARRAY[curr_matrix][pos-1]);
 					}
 				}
 			}
@@ -142,8 +173,8 @@ uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc
 		}
 	}
 
-	// Update block POS_ARRAY
-	if (block_contact || made_contact)
+	// Update block POS_ARRAY on contact
+	if (block_contact)
 	{
 		for (uc block_seg_pos = 0 ; block_seg_pos < block_length; block_seg_pos++)
 		{
