@@ -1,18 +1,19 @@
-#ifndef __BLOCKS_H__
-#define __BLOCKS_H__
 
-typedef unsigned char  uc;
-typedef   signed char  sc;
-typedef unsigned short us;
+#ifndef __BLOCKS_C__
+#define __BLOCKS_C__
+
+//#include "utils.h"
+
+//typedef unsigned char  uc;
+//typedef   signed char  sc;
+//typedef unsigned short us;
+
+#include "blocks.h"
+#include "utils.h"
 
 // GLOBALS
 //*******************************
 uc POS_ARRAY[4][8];
-
-struct Row_Eliminator {
-	uc num_of_solid_rows;
-	uc rows[8]; // Max of 8 rows
-};
 //*******************************
 
 uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
@@ -34,8 +35,9 @@ uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
 	return ((POS_ARRAY[matrix][pos] & (block >> 1)) > 0) || (poc == 0 && matrix == 3);
 }
 
-void Check_For_Solid_Row(uc matrix, uc *re)
+void Solid_Row_Detector(uc matrix, uc *re)
 {
+	// re = Rows to be Eliminated (aka solid rows)
 	re[0] = 0; // Reset Value in case previously set
 	
 	uc is_solid = 1;
@@ -95,7 +97,7 @@ void Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 	}
 }
 
-enum Block_Orientation { Vertical_Up, Horizontal_Up, Vertical_Down, Horizontal_Down};
+//enum Block_Orientation { Vertical_Up, Horizontal_Up, Vertical_Down, Horizontal_Down};
 
 uc Assign_L_Block(uc orientation, uc h_pos)
 {

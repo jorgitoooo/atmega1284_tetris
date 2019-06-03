@@ -1,11 +1,7 @@
-#ifndef __UTILS_H__
-#define __UTILS_H__
+#include "utils.h"
 
+#include "MAX7219.h"
 #include "blocks.c"
-
-typedef unsigned  char uc;
-typedef   signed  char sc;
-typedef unsigned short us;
 
 void Load_Word()
 {
@@ -21,32 +17,7 @@ void Shift_Bit_Into(us reg_data, uc indx)
 	// CLK goes high to shift the bit
 	LED_MATRIX_PORT |= 0x04; // 0000 0cxx
 }
-/*
-void Init_LED_Matrix(uc matrix_count)
-{
-	us us_disp_tst_reg = DISPLAY_TST_REG_ADDR | DISP_NORMAL_MODE;
-	uc indx = 16;
-	uc curr_matrix = 0;
-	
-	while (curr_matrix < matrix_count)
-	{
-		LED_MATRIX_PORT = CLEAR;
-		
-		if(indx > 0)
-		{
-			--indx;
-		}
-		else
-		{
-			// Latch 16-bit shift reg
-			LED_MATRIX_PORT = LOAD; // 0000 0010
-			indx = 15;
-			++curr_matrix;
-		}
-		Shift_Bit_Into(us_disp_tst_reg, indx);
-	}
-}
-*/
+
 void Set_Register(uc reg_data, uc matrix_num)
 {
 	LED_MATRIX_PORT = CLEAR;
@@ -158,4 +129,3 @@ void Light_Matrix_Up(uc matrix)
 		Load_Word();
 	}	
 }
-#endif

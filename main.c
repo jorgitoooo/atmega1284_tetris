@@ -3,18 +3,31 @@
 #include <string.h>
 
 #include "timer.h"
-#include "io.c"
+//#include "io.c"
 #include "MAX7219.c"
 
 #include "consts.h"
 #include "utils.c" // Init_LED_Matrices, Set_Brightness, Load_word, ...
 #include "blocks.c" // Block drawing funcs
 
+#define INFO_INDEX 0
 
 typedef unsigned  char uc;
 typedef   signed  char sc;
 typedef unsigned short us;
 
+uc two_to_the(uc exponent)
+{
+	if (exponent > 8) return 0;
+	
+	uc res = 1;
+	
+	for (uc i = 0; i < exponent; i++)
+	{
+		res *= 2;
+	}
+	return res;
+}
 
 void MakeRandom()
 {
@@ -149,7 +162,7 @@ void Drop_A_Block(uc (*fct) (uc, uc, uc, sc, uc, uc), uc *cur_matrix, uc *is_don
 			*from_bottom = 5;
 			++(*cur_matrix);
 		}
-		else if (*from_bottom < 0 && *cur_matrix >= 3 || contact)
+		else if ((*from_bottom < 0 && *cur_matrix >= 3) || contact)
 		{
 			*is_done = 0x01;
 		}
@@ -170,20 +183,83 @@ void DrawBlockMatrix()
 	}
 }
 
-void TestForSolids()
+// This function should collapse the specified row
+void Row_Collapser(uc curr_matrix, uc row)
 {
-	uc re[9];
-	
-	for (uc matrix = 0; matrix < 4; matrix++)
+	for (uc col = 0; col < 8; col++)
 	{
-		Check_For_Solid_Row(matrix, re);
-		
-		while (!TimerFlag);
-		TimerFlag = 0;
-		
-		PORTB &= 0x0F;
-		PORTB |= (re[0] << 4);
+		if (row == 0)
+		{
+			POS_ARRAY[curr_matrix][col] >>= 1;
+		}
+		else
+		{
+			uc above_row  = POS_ARRAY[curr_matrix][col] & (0xFF << (row + 1)); // Saves everything above solid row
+			POS_ARRAY[curr_matrix][col] &= (0xFF >> (7 - (row - 1))); // Will mask off everything above solid row
+			POS_ARRAY[curr_matrix][col] |= (above_row >> 1); // Shifts everything below solid row by one
+		}
 	}
+}
+
+Collapsed_Row_Merger(uc re[4][9])
+{
+/*
+	// Maintains sum of collapsed rows per matrix
+	uc sum_of_collapsed_rows[4];
+	sum_of_collapsed_rows[3] = re[3][0];
+	sum_of_collapsed_rows[2] = sum_of_collapsed_rows[3] + re[2][0];
+	sum_of_collapsed_rows[1] = sum_of_collapsed_rows[2] + re[1][0];
+	sum_of_collapsed_rows[0] = sum_of_collapsed_rows[1] + re[0][0];
+*/
+
+	// matrix < 3 ensures that (matrix  + 1) will never be greater than 3
+	for (uc matrix = 3; matrix > 0; --matrix)
+	{
+		for (uc col = 0; col < 8; ++col)
+		{
+			for (uc tmp_mtrx = matrix - 1; tmp_mtrx < 3; ++tmp_mtrx)
+			{
+				PORTB &= 0x07;
+				PORTB |= tmp_mtrx << 4;
+				//*********************
+				
+				uc tmp_col = POS_ARRAY[tmp_mtrx][col];
+				
+				POS_ARRAY[tmp_mtrx][col] = tmp_col >> (re[tmp_mtrx + 1][INFO_INDEX]);
+				POS_ARRAY[tmp_mtrx + 1][col] |= (tmp_col << (7 - (re[tmp_mtrx + 1][INFO_INDEX] - 1)));
+				
+				//******************************
+				while(!TimerFlag); TimerFlag = 0;
+				DrawBlockMatrix();
+			}
+		}
+	}
+}
+
+void Solid_Row_Eliminator()
+{
+		/*
+		 * re[0:4][ x ] = number of matrix starting from the top
+		 * re[0:4][ 0 ] = number of solid rows per matrix
+		 * re[0:4][1-n] = solid row numbers
+		 */  
+		uc re[4][9];
+		uc elimination_sum = 0;
+		for (uc curr_matrix = 0; curr_matrix < 4; curr_matrix++)
+		{
+			Solid_Row_Detector(curr_matrix, re[curr_matrix]);
+					
+			for (uc row = re[curr_matrix][INFO_INDEX]; row >= 1; --row)
+			{
+				Row_Collapser(curr_matrix, re[curr_matrix][row]);
+				
+				while(!TimerFlag); TimerFlag = 0;
+				DrawBlockMatrix();
+			}
+		}
+		Collapsed_Row_Merger(re);
+//		DrawBlockMatrix();
+		
 }
 
 int main(void)
@@ -191,7 +267,7 @@ int main(void)
 	DDRA = 0x03; PORTA = 0xFC;
 	DDRB = 0xFF; PORTB = 0x00;
 
-	TimerSet(1000);
+	TimerSet(150);
 	TimerOn();
 
 	Init_LED_Matrices(4);
@@ -218,28 +294,32 @@ int main(void)
 
 	MakeRandom();
 	DrawBlockMatrix();
-	
-	TestForSolids();	
-	
-//	uc re[9];
-//	Check_For_Solid_Row(1, re);
-	
-//	PORTB = re[0];
-	
+
+	Solid_Row_Eliminator();
+
 	while (1) 
     {
 	
 //		Show_Orientations("l block");	
 //		Drop_A_Block(fct, &cur_matrix, &is_done, &left, &right, &orientation, &from_bottom);
-	
-		if(is_done)
+	/*
+		while(!is_done)
 		{
 			Clear_All();
 			DrawBlockMatrix();
-			Drop_A_Block(fct, &cur_matrix2, &is_done2, &left2, &right2, &orientation2, &from_bottom2);
+			Drop_A_Block(fct, &cur_matrix, &is_done, &left, &right, &orientation, &from_bottom);
+			
+			while(!TimerFlag);
+			TimerFlag = 0;
 		}
-
-		while(!TimerFlag);
-		TimerFlag = 0;
+		is_done = 0;
+		cur_matrix = 0;
+		left = left2;
+		right = right2;
+		orientation = orientation2;
+		from_bottom = from_bottom2;
+*/
+	
+//		TestForSolids();
     }
 }
