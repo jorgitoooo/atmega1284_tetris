@@ -25,14 +25,71 @@ uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
 	{
 		return ((POS_ARRAY[matrix + 1][pos] & (block << (7 + poc))) > 0);
 	}
-
-//	uc par_pos = (POS_ARRAY[matrix][pos] & (0x01 << (poc - 1))) >> (poc - 1);
-//	uc blk_pos = (block & (0x01 << poc)) >> poc;
-
-	// Returns 1 if block collides w/ another block or reaches the bottom
-//	return (par_pos == blk_pos && par_pos != 0) || (poc == 0 && matrix == 3);
-
 	return ((POS_ARRAY[matrix][pos] & (block >> 1)) > 0) || (poc == 0 && matrix == 3);
+}
+
+uc Game_Over()
+{
+	for (uc col = 0; col < 8; col++)
+		if ((POS_ARRAY[0][col] & 0x80) > 0)
+			return 1;
+}
+
+uc Draw_it(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact, uc (*Assign_Block) (uc, uc))
+{
+	uc block_contact = made_contact;
+	
+	uc block_length = left - right + 1; // Lowest (left - right) value is 0 which is why we add 1
+	uc block_maintainer[block_length]; // Will maintain the visual representation of the block
+
+	for(char pos = 1; pos <= 8; pos++)
+	{
+		for(char curr_matrix = 0; curr_matrix < 4; curr_matrix++)
+		{
+			if (curr_matrix == matrix)
+			{
+				uc l_blk = (*Assign_Block)(orientation, pos - right);
+
+				l_blk = from_bottom < 0 ? l_blk >> abs(from_bottom) : l_blk << from_bottom;
+			
+				// right <= pos <= left -> block segment column is selected
+				if (pos >= right && pos <= left)
+				{
+					if (Check_For_Contact(curr_matrix, pos - 1, from_bottom, l_blk) == 1)
+					{
+						block_contact = 1;
+					}
+					
+					block_maintainer[pos - right] = l_blk;
+					
+					Send_Word(pos, POS_ARRAY[curr_matrix][pos-1] | l_blk);
+				}
+				else
+				{
+					Send_Word(pos, POS_ARRAY[curr_matrix][pos-1]);
+				}
+			}
+			else
+			{
+				if (pos >= right && pos <= left && from_bottom < 0)
+				{
+					Send_Word(0, 0x00);
+				}
+				else
+				{
+
+					Send_Word(pos, POS_ARRAY[curr_matrix][pos-1]);
+				}
+			}
+		}
+		Load_Word();
+	}
+
+	// Update block POS_ARRAY on contact
+	if (block_contact)
+		for (uc block_seg_pos = 0 ; block_seg_pos < block_length; block_seg_pos++)
+			POS_ARRAY[matrix][right - 1 + block_seg_pos] |= block_maintainer[block_seg_pos];
+	return block_contact;
 }
 
 void Solid_Row_Detector(uc matrix, uc *re)
@@ -61,6 +118,11 @@ void Solid_Row_Detector(uc matrix, uc *re)
 		is_solid = 1;
 	}
 }
+uc Assign_O_Block(uc orientation, uc h_pos)
+{
+	return 0x03;
+}
+
 
 void Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 {
@@ -124,66 +186,7 @@ uc Assign_L_Block(uc orientation, uc h_pos)
 //uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
 {
-	uc block_contact = made_contact;
-	
-	uc block_length = left - right + 1; // Lowest (left - right) value is 0 which is why we add 1
-	uc block_maintainer[block_length]; // Will maintain the visual representation of the block
-
-//	if (!block_contact)// If made_contact == 1 -> lower matrix segment of block made contact
-	{
-		for(char pos = 1; pos <= 8; pos++)
-		{
-			for(char curr_matrix = 0; curr_matrix < 4; curr_matrix++)
-			{
-				if (curr_matrix == matrix)
-				{
-					uc l_blk = Assign_L_Block(orientation, pos - right);
-
-					l_blk = from_bottom < 0 ? l_blk >> abs(from_bottom) : l_blk << from_bottom;
-				
-					// right <= pos <= left -> block segment column is selected
-					if (pos >= right && pos <= left)
-					{
-						if (Check_For_Contact(curr_matrix, pos - 1, from_bottom, l_blk) == 1)
-						{
-							block_contact = 1;
-						}
-						
-						block_maintainer[pos - right] = l_blk;
-						
-						Send_Word(pos, POS_ARRAY[curr_matrix][pos-1] | l_blk);
-					}
-					else
-					{
-						Send_Word(pos, POS_ARRAY[curr_matrix][pos-1]);
-					}
-				}
-				else
-				{
-					if (pos >= right && pos <= left && from_bottom < 0)
-					{
-						Send_Word(0, 0x00);
-					}
-					else
-					{
-
-						Send_Word(pos, POS_ARRAY[curr_matrix][pos-1]);
-					}
-				}
-			}
-			Load_Word();
-		}
-	}
-
-	// Update block POS_ARRAY on contact
-	if (block_contact)
-	{
-		for (uc block_seg_pos = 0 ; block_seg_pos < block_length; block_seg_pos++)
-		{
-			POS_ARRAY[matrix][right - 1 + block_seg_pos] |= block_maintainer[block_seg_pos];
-		}
-	}
-	return block_contact;
+	return Draw_it(matrix, left, right, from_bottom, orientation, made_contact, &Assign_L_Block);
 }
 
 uc Assign_I_Block(uc orientation)
