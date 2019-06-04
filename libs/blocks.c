@@ -35,7 +35,7 @@ uc Game_Over()
 			return 1;
 }
 
-uc Draw_it(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact, uc (*Assign_Block) (uc, uc))
+uc Draw_It(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact, uc (*Assign_Block) (uc, uc))
 {
 	uc block_contact = made_contact;
 	
@@ -118,14 +118,16 @@ void Solid_Row_Detector(uc matrix, uc *re)
 		is_solid = 1;
 	}
 }
+//****************************************** O - Block
 uc Assign_O_Block(uc orientation, uc h_pos)
 {
 	return 0x03;
 }
-
-
-void Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
+/*
+uc Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
 {
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_O_Block);
+
 	uc blk;
 	if (matrix != BOTTOM_MATRIX && from_bottom == -1)
 	{
@@ -157,10 +159,10 @@ void Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 		}
 		Load_Word();
 	}
+
 }
-
-//enum Block_Orientation { Vertical_Up, Horizontal_Up, Vertical_Down, Horizontal_Down};
-
+*/
+//****************************************** L - Block
 uc Assign_L_Block(uc orientation, uc h_pos)
 {
 	uc L = 0x00;
@@ -183,12 +185,12 @@ uc Assign_L_Block(uc orientation, uc h_pos)
 	return L;
 }
 
-//uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
 {
-	return Draw_it(matrix, left, right, from_bottom, orientation, made_contact, &Assign_L_Block);
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_L_Block);
 }
 
+//****************************************** I - Block
 uc Assign_I_Block(uc orientation)
 {
 	uc bar = 0x00;
@@ -206,9 +208,11 @@ uc Assign_I_Block(uc orientation)
 	}
 	return bar;
 }
-
-void Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
+/*
+uc Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
 {
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_I_Block);
+
 	for(char pos = right; pos <= left; pos++)
 	{
 		for(char k = 0; k < 4; k++)
@@ -226,5 +230,15 @@ void Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation)
 		}
 		Load_Word();
 	}
+
+}
+*/
+uc Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_O_Block);
+}
+uc Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_I_Block);
 }
 #endif

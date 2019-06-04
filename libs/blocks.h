@@ -16,7 +16,7 @@ uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block);
 
 void Solid_Row_Detector(uc matrix, uc *re);
 
-void Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation);
+uc Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact);
 
 enum Block_Orientation { Vertical_Up, Horizontal_Up, Vertical_Down, Horizontal_Down};
 
@@ -26,6 +26,5 @@ uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc
 
 uc Assign_I_Block(uc orientation);
 
-void Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation);
-
+uc Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact);
 #endif

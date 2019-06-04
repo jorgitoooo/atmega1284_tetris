@@ -83,7 +83,7 @@ void Init_LED_Matrices(uc num_of_matrices)
 	}
 }
 
-
+/*
 void Show_Orientations(const char *str)
 {
 	if(strcmp(str, "l block") == 0)
@@ -108,7 +108,7 @@ void Show_Orientations(const char *str)
 		Draw_I_Block(3, 7, 3, 3, Horizontal_Down);
 	}
 }
-
+*/
 void Light_Matrix_Up(uc matrix)
 {
 	for (uc i = 0; i < 9; i++)

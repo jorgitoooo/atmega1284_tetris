@@ -274,6 +274,66 @@ void Solid_Row_Eliminator()
 		Collapsed_Row_Merger(re);
 }
 
+const uc num_of_blocks = 6;
+
+typedef struct Block
+{
+	uc left;
+	uc right;
+	uc init_left;
+	uc init_right;
+	uc orientation;
+} Block;
+	
+
+
+void Initialize_Blocks(Block blocks[])
+{
+	uc block = 0;
+	
+	// L-Block
+	blocks[block].init_left  = 5;
+	blocks[block].init_right = 4;
+	blocks[block].left       = blocks[block].init_left;
+	blocks[block].right      = blocks[block].init_left;
+	block++;
+	// O-Block
+	blocks[block].init_left  = 5;
+	blocks[block].init_right = 4;
+	blocks[block].left       = blocks[block].init_left;
+	blocks[block].right      = blocks[block].init_left;
+	block++;
+	// I-Block
+	blocks[block].init_left  = 5;
+	blocks[block].init_right = 5;
+	blocks[block].left       = blocks[block].init_left;
+	blocks[block].right      = blocks[block].init_left;
+	block++;
+	// J-Block
+	blocks[block].init_left  = 5;
+	blocks[block].init_right = 4;
+	blocks[block].left       = blocks[block].init_left;
+	blocks[block].right      = blocks[block].init_left;
+	block++;
+	// S-Block
+	blocks[block].init_left  = 6;
+	blocks[block].init_right = 4;
+	blocks[block].left       = blocks[block].init_left;
+	blocks[block].right      = blocks[block].init_left;
+	block++;
+	// Z-Block
+	blocks[block].init_left  = 6;
+	blocks[block].init_right = 4;
+	blocks[block].left       = blocks[block].init_left;
+	blocks[block].right      = blocks[block].init_left;
+	block++;
+	// T-Block
+	blocks[block].init_left  = 6;
+	blocks[block].init_right = 4;
+	blocks[block].left       = blocks[block].init_left;
+	blocks[block].right      = blocks[block].init_left;
+	block++;
+}
 int main(void)
 {
 	DDRA = 0x00; PORTA = 0xFF;
@@ -293,27 +353,32 @@ int main(void)
 	uc cur_matrix2 = 0;
 	sc from_bottom2 = 7;
 	uc is_done2 = 0;
+	Block blocks[num_of_blocks];
+	Initialize_Blocks(blocks);
 	
-	uc right = 4, left = 5;
-	uc right2 = 4, left2 = 5;
-	
-	enum Block_Orientation orientation = Vertical_Up;
-	enum Block_Orientation orientation2 = Vertical_Up;
-	
-	uc (*fct[]) (uc, uc, uc, sc, uc, uc) = {Draw_L_Block, Draw_O_Block};
+	uc (*fct[]) (uc, uc, uc, sc, uc, uc) = {Draw_L_Block, Draw_O_Block, Draw_I_Block};
 	
 //	fct = &Draw_L_Block;
 
 	MakeRandom();
 //	DrawBlockMatrix();
 
+	uc block_type = rand() % 3;
 	while (1) 
     {
 		while(!is_done && !Game_Over())
 		{
 			Clear_All();
 			Draw_Block_Matrix();
-			Drop_A_Block(fct[0], &cur_matrix, &is_done, &left, &right, &orientation, &from_bottom);
+			Drop_A_Block(
+				fct[block_type], 
+				&cur_matrix, 
+				&is_done, 
+				&blocks[block_type].left, 
+				&blocks[block_type].right, 
+				&blocks[block_type].orientation, 
+				&from_bottom
+			);
 			
 			while(!TimerFlag);
 			TimerFlag = 0;
@@ -321,11 +386,13 @@ int main(void)
 		
 		if (is_done && !Game_Over())
 		{
+			block_type = rand() % 3;
 			is_done = 0;
 			cur_matrix = 0;
-			left = left2;
-			right = right2;
-			orientation = orientation2;
+			
+			blocks[block_type].left  = blocks[block_type].init_left;
+			blocks[block_type].right = blocks[block_type].init_right;
+			blocks[block_type].orientation = Vertical_Up;
 			from_bottom = from_bottom2;
 			
 			Solid_Row_Eliminator();
