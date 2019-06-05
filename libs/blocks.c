@@ -14,25 +14,270 @@
 // GLOBALS
 //*******************************
 uc POS_ARRAY[4][8];
-//*******************************
 
-uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
+const uc num_of_blocks = 7;
+
+typedef struct Block
 {
-	// ************** HORIZONTAL_DOWN LOWER MATRIX COLLISION BUG IS PROB. HERE **
-	// Neg. poc means part of the block is on the lower matrix
-	// Matrix + 1 > 3 means that we're on the lowest matrix
-	if (poc <= 0 && matrix + 1 <= 3)
-	{
-		return ((POS_ARRAY[matrix + 1][pos] & (block << (7 + poc))) > 0);
-	}
-	return ((POS_ARRAY[matrix][pos] & (block >> 1)) > 0) || (poc == 0 && matrix == 3);
+	uc left;
+	uc right;
+	uc init_left;
+	uc init_right;
+	uc orientation;
+	uc width;
+	uc rotation_change; // To adjust the blocks width
+	uc (*fct) (uc, uc, uc, sc, uc, uc);
+} Block;
+//*******************************
+void Initialize_Blocks(Block blocks[])
+{
+	uc block = 0;
+	
+	// L-Block
+	blocks[block].init_left       = 5;
+	blocks[block].init_right      = 4;
+	blocks[block].left            = blocks[block].init_left;
+	blocks[block].right           = blocks[block].init_right;
+	blocks[block].width           = blocks[block].left - blocks[block].right;
+	blocks[block].rotation_change = 1;
+	blocks[block].fct = &Draw_L_Block;
+	block++;
+	// O-Block
+	blocks[block].init_left	      = 5;
+	blocks[block].init_right      = 4;
+	blocks[block].left	      = blocks[block].init_left;
+	blocks[block].right	      = blocks[block].init_right;
+	blocks[block].width           = blocks[block].left - blocks[block].right;
+	blocks[block].rotation_change = 0;
+	blocks[block].fct = &Draw_O_Block;
+	block++;
+	// I-Block
+	blocks[block].init_left	      = 5;
+	blocks[block].init_right      = 5;
+	blocks[block].left	      = blocks[block].init_left;
+	blocks[block].right	      = blocks[block].init_right;
+	blocks[block].width           = blocks[block].left - blocks[block].right;
+	blocks[block].rotation_change = 2;
+	blocks[block].fct = &Draw_I_Block;
+	block++;
+	// J-Block
+	blocks[block].init_left	      = 5;
+	blocks[block].init_right      = 4;
+	blocks[block].left	      = blocks[block].init_left;
+	blocks[block].right	      = blocks[block].init_right;
+	blocks[block].width           = blocks[block].left - blocks[block].right;
+	blocks[block].rotation_change = 1;
+	blocks[block].fct = &Draw_J_Block;
+	block++;
+	// S-Block
+	blocks[block].init_left	      = 5;
+	blocks[block].init_right      = 4;
+	blocks[block].left	      = blocks[block].init_left;
+	blocks[block].right	      = blocks[block].init_right;
+	blocks[block].width           = blocks[block].left - blocks[block].right;
+	blocks[block].rotation_change = 1;
+	blocks[block].fct = &Draw_S_Block;
+	block++;
+	// Z-Block
+	blocks[block].init_left	      = 5;
+	blocks[block].init_right      = 4;
+	blocks[block].left	      = blocks[block].init_left;
+	blocks[block].right	      = blocks[block].init_right;
+	blocks[block].width           = blocks[block].left - blocks[block].right;
+	blocks[block].rotation_change = 1;
+	blocks[block].fct = &Draw_Z_Block;
+	block++;
+	// T-Block
+	blocks[block].init_left       = 5;
+	blocks[block].init_right      = 4;
+	blocks[block].left            = blocks[block].init_left;
+	blocks[block].right           = blocks[block].init_right;
+	blocks[block].width           = blocks[block].left - blocks[block].right;
+	blocks[block].rotation_change = 1;
+	blocks[block].fct = &Draw_T_Block;
+	block++;
 }
 
-uc Game_Over()
+
+//****************************************** O - Block
+uc Assign_O_Block(uc orientation, uc h_pos)
 {
-	for (uc col = 0; col < 8; col++)
-		if ((POS_ARRAY[0][col] & 0x80) > 0)
-			return 1;
+	return 0x03;
+}
+
+uc Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_O_Block);
+}
+//****************************************** L - Block
+uc Assign_L_Block(uc orientation, uc h_pos)
+{
+	uc L = 0x00;
+	switch(orientation)
+	{
+		case Vertical_Up:
+			L = h_pos == 0 ? 0x01 : 0x07;
+			break;
+		case Horizontal_Up:
+			L = h_pos == 0 ? 0x03 : 0x01;
+			break;
+		case Vertical_Down:
+			L = h_pos == 0 ? 0x07 : 0x04;
+			break;
+		case Horizontal_Down:
+			L = h_pos == 2 ? 0x03 : 0x02;
+			break;
+		default: break;
+	}
+	return L;
+}
+
+uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_L_Block);
+}
+//****************************************** I - Block
+uc Assign_I_Block(uc orientation, uc h_pos)
+{
+	uc bar = 0x00;
+	switch(orientation)
+	{
+		case Vertical_Up:
+		case Vertical_Down:
+			bar = 0x07;
+			break;
+		case Horizontal_Down:
+		case Horizontal_Up:
+			bar = 0x01;
+			break;
+		default: break;
+	}
+	return bar;
+}
+
+uc Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_I_Block);
+}
+//****************************************** J - Block
+uc Assign_J_Block(uc orientation, uc h_pos)
+{
+	uc J = 0x00;
+	switch(orientation)
+	{
+		case Vertical_Up:
+			J = h_pos == 0 ? 0x07 : 0x01;
+			break;
+		case Horizontal_Up:
+			J = h_pos == 0 ? 0x01 : 0x03;
+			break;
+		case Vertical_Down:
+			J = h_pos == 0 ? 0x04 : 0x07;
+			break;
+		case Horizontal_Down:
+			J = h_pos == 2 ? 0x02 : 0x03;
+			break;
+		default: break;
+	}
+	return J;
+}
+
+uc Draw_J_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_J_Block);
+}
+//****************************************** S - Block
+uc Assign_S_Block(uc orientation, uc h_pos)
+{
+	uc S = 0x00;
+	switch(orientation)
+	{
+		case Vertical_Up:
+		case Vertical_Down:
+			S = h_pos == 0 ? 0x03 : 0x06;
+			break;
+		case Horizontal_Up:
+		case Horizontal_Down:
+			if      (h_pos == 0) S =  0x02;
+			else if (h_pos == 1) S = 0x03;
+			else S = 0x01;
+			break;
+/*		case Vertical_Down:
+			S = h_pos == 0 ? 0x06 : 0x03;
+			break;
+		case Horizontal_Down:
+			if      (h_pos == 0) S = 0x01;
+			else if (h_pos == 1) S = 0x03;
+			else S = 0x02;
+			break;
+*/		default: break;
+	}
+	return S;
+}
+
+uc Draw_S_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_S_Block);
+}
+//****************************************** Z - Block
+uc Assign_Z_Block(uc orientation, uc h_pos)
+{
+	uc Z = 0x00;
+	switch(orientation)
+	{
+		case Vertical_Up:
+		case Vertical_Down:
+			Z = h_pos == 0 ? 0x06 : 0x03;
+			break;
+		case Horizontal_Up:
+		case Horizontal_Down:
+			if      (h_pos == 0) Z = 0x01;
+			else if (h_pos == 1) Z = 0x03;
+			else Z = 0x02;
+			break;
+/*		case Vertical_Down:
+			Z = h_pos == 0 ? 0x06 : 0x03;
+			break;
+		case Horizontal_Down:
+			if      (h_pos == 0) Z = 0x01;
+			else if (h_pos == 1) Z = 0x03;
+			else Z = 0x02;
+			break;
+*/		default: break;
+	}
+	return Z;
+}
+
+uc Draw_Z_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_Z_Block);
+}
+//****************************************** T - Block
+uc Assign_T_Block(uc orientation, uc h_pos)
+{
+	uc T = 0x00;
+	switch(orientation)
+	{
+		case Vertical_Up:
+			T = h_pos == 0 ? 0x02 : 0x07;
+			break;
+		case Vertical_Down:
+			T = h_pos == 0 ? 0x07 : 0x02;
+			break;
+		case Horizontal_Up:
+			T = h_pos == 1 ? 0x03 : 0x01;
+			break;
+		case Horizontal_Down:
+			T = h_pos == 1 ? 0x03 : 0x02;
+			break;
+		default: break;
+	}
+	return T;
+}
+
+uc Draw_T_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+{
+	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_T_Block);
 }
 
 uc Draw_It(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact, uc (*Assign_Block) (uc, uc))
@@ -118,127 +363,23 @@ void Solid_Row_Detector(uc matrix, uc *re)
 		is_solid = 1;
 	}
 }
-//****************************************** O - Block
-uc Assign_O_Block(uc orientation, uc h_pos)
-{
-	return 0x03;
-}
-/*
-uc Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
-{
-	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_O_Block);
 
-	uc blk;
-	if (matrix != BOTTOM_MATRIX && from_bottom == -1)
-	{
-		blk = 0x01; // Half of the block is on the lower matrix
-	}
-	else if (from_bottom == 7)
-	{
-		blk = 0x01 << from_bottom; // Half of the block is on the upper matrix
-	}
-	else
-	{
-		blk = 0x03 << from_bottom; // Regular block
-	}
-
-	for (char j = right; j <= left; j++)
-	{
-		for(char k = 0; k < 4; k++)
-		{
-			if (k == matrix)
-			{
-				MAX7219_SendByte(j);
-				MAX7219_SendByte(blk);
-			}
-			else
-			{
-				MAX7219_SendByte(0);
-				MAX7219_SendByte(0x00);
-			}
-		}
-		Load_Word();
-	}
-
-}
-*/
-//****************************************** L - Block
-uc Assign_L_Block(uc orientation, uc h_pos)
+uc Check_For_Contact(uc matrix, uc pos, sc poc, uc block)
 {
-	uc L = 0x00;
-	switch(orientation)
+	// ************** HORIZONTAL_DOWN LOWER MATRIX COLLISION BUG IS PROB. HERE **
+	// Neg. poc means part of the block is on the lower matrix
+	// Matrix + 1 > 3 means that we're on the lowest matrix
+	if (poc <= 0 && matrix + 1 <= 3)
 	{
-		case Vertical_Up:
-			L = h_pos == 0 ? 0x01 : 0x07;
-			break;
-		case Horizontal_Up:
-			L = h_pos == 0 ? 0x03 : 0x01;
-			break;
-		case Vertical_Down:
-			L = h_pos == 0 ? 0x07 : 0x04;
-			break;
-		case Horizontal_Down:
-			L = h_pos == 2 ? 0x03 : 0x02;
-			break;
-		default: break;
+		return ((POS_ARRAY[matrix + 1][pos] & (block << (7 + poc))) > 0);
 	}
-	return L;
+	return ((POS_ARRAY[matrix][pos] & (block >> 1)) > 0) || (poc == 0 && matrix == 3);
 }
 
-uc Draw_L_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
+uc Game_Over()
 {
-	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_L_Block);
-}
-
-//****************************************** I - Block
-uc Assign_I_Block(uc orientation)
-{
-	uc bar = 0x00;
-	switch(orientation)
-	{
-		case Vertical_Up:
-		case Vertical_Down:
-			bar = 0x0F;
-			break;
-		case Horizontal_Down:
-		case Horizontal_Up:
-			bar = 0x01;
-			break;
-		default: break;
-	}
-	return bar;
-}
-/*
-uc Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
-{
-	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_I_Block);
-
-	for(char pos = right; pos <= left; pos++)
-	{
-		for(char k = 0; k < 4; k++)
-		{
-			if (k == matrix)
-			{
-				MAX7219_SendByte(pos);
-				MAX7219_SendByte( Assign_I_Block(orientation) << from_bottom );
-			}
-			else
-			{
-				MAX7219_SendByte(0);
-				MAX7219_SendByte(0x00);
-			}
-		}
-		Load_Word();
-	}
-
-}
-*/
-uc Draw_O_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
-{
-	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_O_Block);
-}
-uc Draw_I_Block(uc matrix, uc left, uc right, sc from_bottom, uc orientation, uc made_contact)
-{
-	return Draw_It(matrix, left, right, from_bottom, orientation, made_contact, &Assign_I_Block);
+	for (uc col = 0; col < 8; col++)
+		if ((POS_ARRAY[0][col] & 0x80) > 0)
+			return 1;
 }
 #endif

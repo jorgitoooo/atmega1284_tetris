@@ -19,18 +19,7 @@ typedef unsigned  char uc;
 typedef   signed  char sc;
 typedef unsigned short us;
 
-uc two_to_the(uc exponent)
-{
-	if (exponent > 8) return 0;
-	
-	uc res = 1;
-	
-	for (uc i = 0; i < exponent; i++)
-	{
-		res *= 2;
-	}
-	return res;
-}
+
 
 void MakeRandom()
 {
@@ -124,72 +113,83 @@ uc Lateral_Collision(uc curr_matrix, uc col, sc from_bottom)
 }
 */
 
-void Rotation_Check(uc *left, uc *right, uc *orientation)
+void Rotation_Check(Block *block)
 {
 	if (ROTATE_BTN) // Orientation check
 	{
-		*orientation = (*orientation + 1) % 4;
+		block->orientation = (block->orientation + 1) % 4;
+		asm("nop");
 		
-		if ((*orientation == Horizontal_Down || *orientation == Horizontal_Up) && (*left - *right) == 1)
+		if ((block->orientation == Horizontal_Down || block->orientation == Horizontal_Up))// && (*left - *right) == 1)
 		{
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Fix by using block.rotation_change
 			// Maintains left side in bound
-			if (*left > 7)
-			--(*right);
+			if (block->left > 7)
+				block->right = block->left - (block->width + block->rotation_change);
 			else
-			++(*left);
-		}
-		else if ((*left - *right) == 2)
-		--(*left);
-	}
-} 
+				block->left = block->right + block->width  + block->rotation_change;
 
-void Shift_Left_Check(uc *left, uc *right)
+		}
+		else
+			block->left = block->right + block->width;
+	}
+}
+
+void Shift_Left_Check(Block *block)
 {
-	if (SHIFT_RIGHT_BTN && *right > 1) // Shift check
+	if (SHIFT_RIGHT_BTN && block->right > 1) // Shift check
 	{
 		// Test for horizontal collision
 		// When horizontal, there should be an extra space left for the left/right most light
 		//			if (!Lateral_Collision(cur_matrix, *right - 1, from_bottom))
 		//			{
-		--(*left);
-		--(*right);
+		--block->left;
+		--block->right;
 		//			}
 	}
 }
 
-void Shift_Right_Check(uc *left, uc *right)
+void Shift_Right_Check(Block *block)
 {
-	if (SHIFT_LEFT_BTN && *left < 8) // Shift check
+	if (SHIFT_LEFT_BTN && block->left < 8) // Shift check
 	{
 		// Test for horizontal collision
 		// When horizontal, there should be an extra space left for the left/right most light
 		//			if (!Lateral_Collision(cur_matrix, *left, from_bottom))
 		//			{
-		++(*left);
-		++(*right);
+		++block->left;
+		++block->right;
 		//			}
 	}
 }
 
-void Drop_A_Block(uc (*fct) (uc, uc, uc, sc, uc, uc), uc *cur_matrix, uc *is_done, uc *left, uc *right, uc *orientation, sc *from_bottom)
+void Drop_A_Block(
+//	uc (*fct) (uc, uc, uc, sc, uc, uc),
+	uc *cur_matrix,
+	uc *is_done,
+//	uc *left,
+//	uc *right,
+//	uc *orientation,
+	Block *block,
+	sc *from_bottom)
 {
 	uc contact = 0;
 	
 	if (!(*is_done))
 	{
-		Shift_Right_Check(left, right);
-		Shift_Left_Check(left, right);
-		Rotation_Check(left, right, orientation);
-
+		Shift_Right_Check(block);
+		Shift_Left_Check(block);
+		Rotation_Check(block);
 		Clear_All();
 		
 		// from_bottom < 0 if part of the block is on the lower matrix
 		if (*from_bottom < 0 && *cur_matrix < BOTTOM_MATRIX)
 		{
 			// Not placing this fct call first erases the upper matrix's part of block
-			contact = (*fct)(*cur_matrix + 1, *left, *right, 8 + *from_bottom, *orientation, 0); 
+//			contact = (*fct)(*cur_matrix + 1, *left, *right, 8 + *from_bottom, *orientation, 0);
+			contact = block->fct(*cur_matrix + 1, block->left, block->right, 8 + *from_bottom, block->orientation, 0);
 		}
-		contact = (*fct)(*cur_matrix, *left, *right, *from_bottom, *orientation, contact);
+		contact = block->fct(*cur_matrix, block->left, block->right, *from_bottom, block->orientation, contact);
 		--(*from_bottom);
 		
 		if(*from_bottom < -2 && *cur_matrix < 3 && !contact)
@@ -200,6 +200,8 @@ void Drop_A_Block(uc (*fct) (uc, uc, uc, sc, uc, uc), uc *cur_matrix, uc *is_don
 		else if ((*from_bottom < 0 && *cur_matrix >= 3) || contact)
 		{
 			*is_done = 0x01;
+//			block->left = block->init_left;
+//			block->right = block->init_right;
 		}
 	}
 }
@@ -273,67 +275,7 @@ void Solid_Row_Eliminator()
 		}
 		Collapsed_Row_Merger(re);
 }
-
-const uc num_of_blocks = 6;
-
-typedef struct Block
-{
-	uc left;
-	uc right;
-	uc init_left;
-	uc init_right;
-	uc orientation;
-} Block;
-	
-
-
-void Initialize_Blocks(Block blocks[])
-{
-	uc block = 0;
-	
-	// L-Block
-	blocks[block].init_left  = 5;
-	blocks[block].init_right = 4;
-	blocks[block].left       = blocks[block].init_left;
-	blocks[block].right      = blocks[block].init_left;
-	block++;
-	// O-Block
-	blocks[block].init_left  = 5;
-	blocks[block].init_right = 4;
-	blocks[block].left       = blocks[block].init_left;
-	blocks[block].right      = blocks[block].init_left;
-	block++;
-	// I-Block
-	blocks[block].init_left  = 5;
-	blocks[block].init_right = 5;
-	blocks[block].left       = blocks[block].init_left;
-	blocks[block].right      = blocks[block].init_left;
-	block++;
-	// J-Block
-	blocks[block].init_left  = 5;
-	blocks[block].init_right = 4;
-	blocks[block].left       = blocks[block].init_left;
-	blocks[block].right      = blocks[block].init_left;
-	block++;
-	// S-Block
-	blocks[block].init_left  = 6;
-	blocks[block].init_right = 4;
-	blocks[block].left       = blocks[block].init_left;
-	blocks[block].right      = blocks[block].init_left;
-	block++;
-	// Z-Block
-	blocks[block].init_left  = 6;
-	blocks[block].init_right = 4;
-	blocks[block].left       = blocks[block].init_left;
-	blocks[block].right      = blocks[block].init_left;
-	block++;
-	// T-Block
-	blocks[block].init_left  = 6;
-	blocks[block].init_right = 4;
-	blocks[block].left       = blocks[block].init_left;
-	blocks[block].right      = blocks[block].init_left;
-	block++;
-}
+//***************************************** MAIN
 int main(void)
 {
 	DDRA = 0x00; PORTA = 0xFF;
@@ -353,17 +295,17 @@ int main(void)
 	uc cur_matrix2 = 0;
 	sc from_bottom2 = 7;
 	uc is_done2 = 0;
+
 	Block blocks[num_of_blocks];
 	Initialize_Blocks(blocks);
 	
-	uc (*fct[]) (uc, uc, uc, sc, uc, uc) = {Draw_L_Block, Draw_O_Block, Draw_I_Block};
-	
-//	fct = &Draw_L_Block;
+//	uc (*fct[]) (uc, uc, uc, sc, uc, uc) = {Draw_L_Block, Draw_O_Block, Draw_I_Block};
+//***************
+//	MakeRandom();
+Drop_A_Block(&cur_matrix, &is_done, &blocks[5], from_bottom);
+//***************
 
-	MakeRandom();
-//	DrawBlockMatrix();
-
-	uc block_type = rand() % 3;
+	uc block_type = (rand() % 4) + 3;
 	while (1) 
     {
 		while(!is_done && !Game_Over())
@@ -371,12 +313,9 @@ int main(void)
 			Clear_All();
 			Draw_Block_Matrix();
 			Drop_A_Block(
-				fct[block_type], 
 				&cur_matrix, 
 				&is_done, 
-				&blocks[block_type].left, 
-				&blocks[block_type].right, 
-				&blocks[block_type].orientation, 
+				&blocks[block_type],
 				&from_bottom
 			);
 			
@@ -386,7 +325,7 @@ int main(void)
 		
 		if (is_done && !Game_Over())
 		{
-			block_type = rand() % 3;
+			block_type = 4 + (rand() % 3);
 			is_done = 0;
 			cur_matrix = 0;
 			
@@ -403,4 +342,5 @@ int main(void)
 			Clear_All();
 		}
     }
+
 }
