@@ -1,3 +1,5 @@
+#ifndef __MAX7219_H__
+#define __MAX7219_H__
 /*
 *********************************************************************************************************
 * Module     : MAX7219.H
@@ -20,3 +22,4 @@ void MAX7219_DisplayTestStop (void);
 void MAX7219_SetBrightness (char brightness);
 void MAX7219_Clear (void);
 void MAX7219_DisplayChar (char digit, char character);
+#endif

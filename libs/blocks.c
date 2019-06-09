@@ -2,12 +2,6 @@
 #ifndef __BLOCKS_C__
 #define __BLOCKS_C__
 
-//#include "utils.h"
-
-//typedef unsigned char  uc;
-//typedef   signed char  sc;
-//typedef unsigned short us;
-
 #include "blocks.h"
 #include "utils.h"
 
@@ -15,6 +9,7 @@
 //*******************************
 uc POS_ARRAY[4][8];
 
+#define NUM_OF_BLOCKS 7
 const uc num_of_blocks = 7;
 
 typedef struct Block
@@ -169,13 +164,13 @@ uc Assign_J_Block(uc orientation, uc h_pos)
 			J = h_pos == 0 ? 0x07 : 0x01;
 			break;
 		case Horizontal_Up:
-			J = h_pos == 0 ? 0x01 : 0x03;
+			J = h_pos == 2 ? 0x03 : 0x01;
 			break;
 		case Vertical_Down:
 			J = h_pos == 0 ? 0x04 : 0x07;
 			break;
 		case Horizontal_Down:
-			J = h_pos == 2 ? 0x02 : 0x03;
+			J = h_pos == 0 ? 0x03 : 0x02;
 			break;
 		default: break;
 	}
@@ -202,15 +197,7 @@ uc Assign_S_Block(uc orientation, uc h_pos)
 			else if (h_pos == 1) S = 0x03;
 			else S = 0x01;
 			break;
-/*		case Vertical_Down:
-			S = h_pos == 0 ? 0x06 : 0x03;
-			break;
-		case Horizontal_Down:
-			if      (h_pos == 0) S = 0x01;
-			else if (h_pos == 1) S = 0x03;
-			else S = 0x02;
-			break;
-*/		default: break;
+		default: break;
 	}
 	return S;
 }

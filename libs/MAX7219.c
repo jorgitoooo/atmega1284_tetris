@@ -348,5 +348,6 @@ static void MAX7219_SendByte (unsigned char dataout)
       DATA_0();                                       //  "0"
     CLK_1();                                          // bring CLK high
 	}
+   CLK_0();
 }
 
